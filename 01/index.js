@@ -1,8 +1,15 @@
 const fs = require('fs');
 const path = require('path');
+
  
-const baseDir = './music';
-const newDir =  './alphabetDirs'
+// const baseDir = './music';
+// const newDir =  './alphabetDirs';
+
+const baseDir = process.argv[2];
+const newDir = process.argv[3];
+const deleteFlag = process.argv[4];
+
+console.log("args: ", baseDir, newDir, deleteFlag);
 
  
 /*
@@ -64,7 +71,8 @@ const copyFiles = (filesObj, targetDir) => {
             }else console.error(err);
           }
           console.log(`Directory ${newAlphabetDir} created successfully!`);
-        });     
+        });
+
         // copy files to new dirs
         filesObj[key].forEach(file => {          
           fs.link(file, path.join(newAlphabetDir, path.basename(file)), err => {
@@ -98,8 +106,28 @@ const createNewBaseDir = (newBaseDir) => {
   }); 
 }
 
+/*
+  Remove old baseDir
+*/
+
+const removeOldBaseDir = (oldBaseDir, removeFlag) => {
+  if (removeFlag === '--delete') {
+    fs.rmdir(oldBaseDir, {
+      recursive: true,
+    }, (error) => {
+      if (error) {
+        console.error(error);
+      }
+      else {
+        console.log(`${oldBaseDir}: Directories Deleted!`);
+      }
+    })
+ }
+} 
+
 // entry point
 createNewBaseDir(newDir);
-lsDir(baseDir);
+lsDir(baseDir)
+removeOldBaseDir(baseDir, deleteFlag);
 
 
