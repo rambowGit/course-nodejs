@@ -19,9 +19,7 @@ console.log("args: ", baseDir, newBaseDir, deleteFlag);
   Get files list
 */ 
 const lsDir = async (baseDir) => {
-  let filesToCopy = {},
-  filesObject = {};  
-  
+
    // curent not sorted  base dir 
   const files = await readDir(baseDir);
   
@@ -32,15 +30,7 @@ const lsDir = async (baseDir) => {
         if (state.isDirectory()) {
           lsDir(localBase);
         } else {
-          // if object key exist, add fool file path to array
-          if (filesToCopy[item.charAt(0).toLowerCase()]) {
-            filesToCopy[item.charAt(0)].push(localBase);
-          } else {              
-            filesToCopy[item.charAt(0).toLowerCase()] = [localBase];
-          }
-          // sort by alphabet
-          filesObject = Object.keys(filesToCopy).sort().reduce((r, k) => (r[k] = filesToCopy[k], r), {});
-          copyFiles(filesObject, newBaseDir);
+          copyFiles(localBase, newBaseDir);
         }
       })     
   })
@@ -49,23 +39,19 @@ const lsDir = async (baseDir) => {
 /*
   Copy file to new dir
 */ 
-const copyFiles = async (filesObj, targetDir) => {  
+const copyFiles = async (fileToCopy, targetDir) => {  
       // create new sub-dirs
-      for (let key in filesObj) {
-      let newAlphabetDir = path.join(targetDir, key);
+      let newAlphabetDir = path.join(targetDir, path.basename(fileToCopy).charAt(0).toLowerCase());
       await createNewDir(newAlphabetDir);
 
       // copy files to new dirs
-      filesObj[key].forEach(file => {    
-        const newFileName = path.join(newAlphabetDir, path.basename(file));      
-        copyFile(file, newFileName)
+        const newFileName = path.join(newAlphabetDir, path.basename(fileToCopy));      
+        copyFile(fileToCopy, newFileName)
         .catch(err =>{
-          if (err.code !== 'EEXIST') {
+          if (err?.code !== 'EEXIST') {
             console.error(err);
           }
         });
-      });
-    }   
 }
 
 /*
@@ -75,7 +61,7 @@ const createNewDir = async (dirName) => {
   // create new base dir for sorted files
   await mkDir(dirName)
   .catch(err => {
-    if (err.code !== 'EEXIST') {
+    if (err?.code !== 'EEXIST') {
       console.error(err);
     }
   });
