@@ -14,14 +14,14 @@ const lsDir = (baseDir) => {
    // curent not sorted  base dir 
   fs.readdir(baseDir, (err, files) => {
     if (err) {
-      console.error(err);
+      console.error(err.message);
       return;
     } 
     files.forEach(item => {
         let localBase = path.join(baseDir, item);
         fs.stat(localBase, (err, state) => {
           if (err) {
-            console.error(err);
+            console.error(err.message);
             return;
           } 
           if (state.isDirectory())
@@ -32,7 +32,9 @@ const lsDir = (baseDir) => {
       })
   });
 };
- 
+
+
+
 /*
   Copy file to new dir
 */ 
@@ -44,32 +46,23 @@ const copyFiles = (fileToCopy, targetDir) => {
     if (curentDir == requiredDir) {     
         // create new sub-dirs
         let newAlphabetDir = path.join(targetDir, path.basename(fileToCopy).charAt(0).toLowerCase());
-        createNewDir(newAlphabetDir);        
-        // copy files to new dirs
-          fs.link(fileToCopy, path.join(newAlphabetDir, path.basename(fileToCopy)), err => {
-            if (err) {
-              console.error(err.message);
-              return;
-            }
-          });
+        createNewDir(newAlphabetDir, () => {
+                 // copy files to new dirs
+                 console.log("copy files: ",  fileToCopy + " to " + path.join(newAlphabetDir, path.basename(fileToCopy)));
+                 fs.link(fileToCopy, path.join(newAlphabetDir, path.basename(fileToCopy)), err => {
+                  if (err) {
+                    console.error(err.message);
+                    return;
+                  }
+                });
+        });        
+ 
     } 
   } catch (err) {
-    console.error('crete directory error: ', err); 
+    console.error('crete directory error: ', err.message); 
   }
 }
 
-/*
- Create new dir
-*/
-const createNewDir = (dirName) => {
-  // create new base dir for sorted files
-  fs.mkdir(dirName, err => {
-    if (err?.code !== 'EEXIST') {
-      console.error(err);
-    }
-  console.log(`Directory ${dirName} created successfully!`);
-  }); 
-}
 
 /*
   Remove old baseDir
@@ -80,15 +73,33 @@ const removeOldBaseDir = (oldBaseDir, removeFlag) => {
       recursive: true,
     }, (error) => {
       if (error)
-        console.error(error);
+        console.error(error.message);
       else
         console.log(`${oldBaseDir}: Directories Deleted!`);
     })
  }
 } 
 
+
+/*
+ Create new dir (helper)
+*/
+const createNewDir = (dirName, cb) => {
+  // create new base dir for sorted files
+  fs.mkdir(dirName, (err) => {
+    if (err) {
+      if (err.code !== 'EEXIST' )
+          console.error(err);
+    }
+  cb();     
+  });  
+}
+
+
 // entry point
-createNewDir(newDir);
+createNewDir(newDir, () => {
+  console.log(`Directory ${newDir} created succeffuly.`)
+});
 lsDir(baseDir)
 removeOldBaseDir(baseDir, deleteFlag);
 
