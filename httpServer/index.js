@@ -1,5 +1,12 @@
+/*
+Before start, run in bash console:
+  export TIMER_INTERVAL=1000
+  export TIMER_INTERVAL=1000
+
+For start app use: node ./index.js
+*/
+
 const http = require('http');
-//const getUtcDate = require('./timer.js');
 
 const port = 8080;
 let connections = [];
@@ -34,8 +41,8 @@ const requestListener = function (req, res) {
                     if (timeToStop > 0) {
                       clearInterval(showDate);
                       const curDate = new Date().toUTCString();
-                      res.write(`Disconected at  ${curDate} \n`);
-                      res.end();
+                     // res.write(`Disconected at  ${curDate} \n`);
+                      res.end(`Disconected at  ${curDate} \n`);
                       connections = [];
                     }                      
                   }, timeToStop)
