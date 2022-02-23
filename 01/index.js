@@ -1,82 +1,109 @@
+/*
+For start use: node ./index.js ./music ./alphabetDirs --delete
+*/
 const fs = require('fs');
 const path = require('path');
- 
-const baseDir = './music';
-const newDir =  './alphabetDirs'
-let filesToCopy={};
+
+const baseDir = process.argv[2];
+const newDir = process.argv[3];
+const deleteFlag = process.argv[4];
+
+console.log("args: ", baseDir, newDir, deleteFlag);
  
 /*
-  Get files list
+  Get curent files list
 */ 
-const readDir = (baseDir, tabLevel) => {
-  const files = fs.readdirSync(baseDir);
- 
-  files.forEach(item => {
-    let localBase = path.join(baseDir, item);
-    let state = fs.statSync(localBase);
-   
-    if (state.isDirectory()) {
-      console.log('-'.repeat(tabLevel) + ' DIR: ' + item);
-      readDir(localBase, tabLevel + 1);
-    } else {
-        // if object key exist, add fool file path to array
-        if (filesToCopy[item.charAt(0).toLowerCase()]) {
-          filesToCopy[item.charAt(0)].push(localBase);
-        } else {
-          filesToCopy[item.charAt(0).toLowerCase()] = [localBase];
-        }
-      console.log('-'.repeat(tabLevel) + ' File: ' + item);
-    }
-  })
-
-  return Object.keys(filesToCopy).sort().reduce((r, k) => (r[k] = filesToCopy[k], r), {});
+const lsDir = (baseDir) => {
+   // curent not sorted  base dir 
+  fs.readdir(baseDir, (err, files) => {
+    if (err) {
+      console.error(err.message);
+      return;
+    } 
+    files.forEach(item => {
+        let localBase = path.join(baseDir, item);
+        fs.stat(localBase, (err, state) => {
+          if (err) {
+            console.error(err.message);
+            return;
+          } 
+          if (state.isDirectory())
+            lsDir(localBase);
+          else       
+            copyFiles(localBase, newDir);
+        });     
+      })
+  });
 };
- 
+
+
+
 /*
   Copy file to new dir
 */ 
-const copyFiles = (filesObj, targetDir) => { 
-   const curentDir = process.cwd();
-   const requiredDir = __dirname;   
-   try {
-     // check curent process location
-    if (curentDir == requiredDir) {
-      console.log('trying to create new dir');
-      if (!fs.existsSync(targetDir)){
-        fs.mkdirSync(targetDir);
-      }else {
-        console.log(`${targetDir} exist!`);
-       }
-     
-       // create new dirs
-       for (let key in filesObj) {
-        let newAlphabetDir = path.join(targetDir, key);
-        fs.mkdirSync(newAlphabetDir);
-        // copy files to new dirs
-        filesObj[key].forEach(file => {
-          
-          fs.link(file, path.join(newAlphabetDir, path.basename(file)), err => {
-            if (err) {
-              console.error(err.message);
-              return;
-            }
-          });
-
-        });
-      }
-      
-
-
-
-    } 
-   } catch (err) {
-    console.error('crete directory error: ', err); 
-  }
-
+const copyFiles = (fileToCopy, targetDir) => { 
+  const curentDir = process.cwd();
+  const requiredDir = __dirname;   
+  try {
+    // check curent process location
+    if (curentDir == requiredDir) {     
+        // create new sub-dirs
+        let newAlphabetDir = path.join(targetDir, path.basename(fileToCopy).charAt(0).toLowerCase());
+        createNewDir(newAlphabetDir, () => {
+                 // copy files to new dirs
+                 console.log("copy files: ",  fileToCopy + " to " + path.join(newAlphabetDir, path.basename(fileToCopy)));
+                 fs.link(fileToCopy, path.join(newAlphabetDir, path.basename(fileToCopy)), err => {
+                  if (err) {
+                    console.error(err.message);
+                    return;
+                  }
+                });
+        });        
  
-};
+    } 
+  } catch (err) {
+    console.error('crete directory error: ', err.message); 
+  }
+}
 
 
-const filesObject = readDir(baseDir, 1);
-console.log("filesObject: ", filesObject);
-copyFiles(filesObject, newDir);
+/*
+  Remove old baseDir
+*/
+const removeOldBaseDir = (oldBaseDir, removeFlag) => {
+  if (removeFlag === '--delete') {
+    fs.rm(oldBaseDir, {
+      recursive: true,
+    }, (error) => {
+      if (error)
+        console.error(error.message);
+      else
+        console.log(`${oldBaseDir}: Directories Deleted!`);
+    })
+ }
+} 
+
+
+/*
+ Create new dir (helper)
+*/
+const createNewDir = (dirName, cb) => {
+  // create new base dir for sorted files
+  fs.mkdir(dirName, (err) => {
+    if (err) {
+      if (err.code !== 'EEXIST' )
+          console.error(err);
+    }
+  cb();     
+  });  
+}
+
+
+// entry point
+createNewDir(newDir, () => {
+  console.log(`Directory ${newDir} created succeffuly.`)
+});
+lsDir(baseDir)
+removeOldBaseDir(baseDir, deleteFlag);
+
+
